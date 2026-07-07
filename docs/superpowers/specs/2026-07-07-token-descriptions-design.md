@@ -67,9 +67,9 @@ not happen post-validation). Probes run concurrently; total wall time is
 bounded by the slowest single probe.
 
 Write access cannot be probed safely (probing would mutate); the summary
-never asserts write capability for fine-grained tokens — it reports reads
-as facts and appends "write: as configured" only if the user recorded write
-permissions manually.
+never asserts write capability for fine-grained tokens — it reports probed
+reads as facts; anything about writes lives only in the user-editable
+permissions field.
 
 ### DescriptionBuilder (GitHubTouchCore, pure)
 
