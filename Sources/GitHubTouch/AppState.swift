@@ -66,7 +66,14 @@ final class AppState: ObservableObject {
     }
 
     func deactivate(silent: Bool = false) {
-        guard let gh else { return }
+        guard let gh else {
+            // gh vanished since activation: still drop local state so the
+            // icon reflects reality; there is no gh login left to clear.
+            activation = ActivationState()
+            stateStore.save(activation)
+            clearTimer?.invalidate()
+            return
+        }
         Task {
             do {
                 try await Task.detached { try gh.deactivate() }.value
