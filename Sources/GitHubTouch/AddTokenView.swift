@@ -13,6 +13,7 @@ struct AddTokenView: View {
     @State private var permissionsText = ""
     @State private var notes = ""
     @State private var validatedInfo: TokenInfo?
+    @State private var validatedToken: String?
     @State private var validating = false
     @State private var errorMessage: String?
 
@@ -60,11 +61,19 @@ struct AddTokenView: View {
                 Button("Cancel") { dismiss() }
                 Button("Save to Vault") { save() }
                     .keyboardShortcut(.defaultAction)
-                    .disabled(validatedInfo == nil || label.isEmpty)
+                    .disabled(validatedInfo == nil || label.trimmingCharacters(in: .whitespaces).isEmpty)
             }
         }
         .padding(20)
         .frame(width: 460)
+        .onChange(of: pastedToken) { _ in
+            validatedInfo = nil
+            validatedToken = nil
+        }
+        .onChange(of: kind) { _ in
+            validatedInfo = nil
+            validatedToken = nil
+        }
     }
 
     private func scopeBinding(_ scope: String) -> Binding<Bool> {
@@ -89,6 +98,7 @@ struct AddTokenView: View {
             do {
                 let info = try await TokenValidator().validate(token)
                 validatedInfo = info
+                validatedToken = token
                 if let scopes = info.scopes {
                     permissionsText = scopes.joined(separator: ", ")
                 }
@@ -101,14 +111,16 @@ struct AddTokenView: View {
     }
 
     private func save() {
-        guard let info = validatedInfo else { return }
+        guard let info = validatedInfo, let token = validatedToken else { return }
+        let trimmedLabel = label.trimmingCharacters(in: .whitespaces)
         let permissions = permissionsText
             .split(separator: ",")
             .map { $0.trimmingCharacters(in: .whitespaces) }
             .filter { !$0.isEmpty }
         do {
-            try state.addToken(label: label, kind: kind, permissions: permissions,
-                               expiresAt: info.expiresAt, notes: notes, secret: pastedToken)
+            try state.addToken(label: trimmedLabel, kind: kind, permissions: permissions,
+                               expiresAt: info.expiresAt, notes: notes, secret: token)
+            validatedToken = nil
             pastedToken = ""
             dismiss()
         } catch {
