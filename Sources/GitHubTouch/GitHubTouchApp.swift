@@ -11,7 +11,7 @@ struct GitHubTouchApp: App {
                 .opacity(state.activation.isActive ? 1.0 : 0.45)
         }
         Window("Add Token", id: "add-token") {
-            Text("Add Token — coming in Task 8").padding().frame(width: 300)
+            AddTokenView().environmentObject(state)
         }
         .windowResizability(.contentSize)
         Window("Manage Tokens", id: "manage-tokens") {
