@@ -66,3 +66,8 @@ off this machine.
    the app must stay silent (no error notification).
 7. First notification: on the very first activation, the notification
    permission prompt must not freeze the menu bar UI.
+
+## License
+
+Copyright © 2026 David Vrensk.
+Released under the GNU General Public License v3.0 — see [LICENSE](LICENSE).
