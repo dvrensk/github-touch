@@ -22,10 +22,19 @@ extension TokenValidationError: LocalizedError {
     }
 }
 
+/// Ephemeral, non-caching session so token-bearing requests can never be
+/// serialized into the CFNetwork disk cache.
+public let ephemeralAPISession: URLSession = {
+    let config = URLSessionConfiguration.ephemeral
+    config.urlCache = nil
+    config.requestCachePolicy = .reloadIgnoringLocalCacheData
+    return URLSession(configuration: config)
+}()
+
 public struct TokenValidator {
     let session: URLSession
 
-    public init(session: URLSession = .shared) {
+    public init(session: URLSession = ephemeralAPISession) {
         self.session = session
     }
 

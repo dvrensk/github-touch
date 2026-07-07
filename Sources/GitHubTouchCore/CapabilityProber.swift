@@ -29,7 +29,7 @@ public struct ProbeReport: Equatable, Sendable {
 public struct CapabilityProber {
     let session: URLSession
 
-    public init(session: URLSession = .shared) {
+    public init(session: URLSession = ephemeralAPISession) {
         self.session = session
     }
 

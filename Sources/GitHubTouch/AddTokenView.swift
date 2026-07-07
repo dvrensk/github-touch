@@ -56,7 +56,7 @@ struct AddTokenView: View {
                             .font(.callout).foregroundStyle(.secondary)
                     }
                     TextField("Menu summary", text: $summaryText)
-                    TextField("Permissions (comma-separated)", text: $permissionsText)
+                    TextField("Permissions (semicolon-separated)", text: $permissionsText)
                     TextField("Notes", text: $notes)
                 }
                 if let errorMessage {
@@ -118,7 +118,7 @@ struct AddTokenView: View {
                     let generated = DescriptionBuilder.build(kind: kind, scopes: info.scopes,
                                                              probe: nil, expiresAt: info.expiresAt)
                     summaryText = generated.summary
-                    permissionsText = generated.details.joined(separator: ", ")
+                    permissionsText = generated.details.joined(separator: "; ")
                 } else {
                     await runProbe(token: token, info: info)
                 }
@@ -140,14 +140,14 @@ struct AddTokenView: View {
         let generated = DescriptionBuilder.build(kind: .fineGrained, scopes: nil,
                                                  probe: report, expiresAt: info.expiresAt)
         summaryText = generated.summary
-        permissionsText = generated.details.joined(separator: ", ")
+        permissionsText = generated.details.joined(separator: "; ")
     }
 
     private func save() {
         guard let info = validatedInfo, let token = validatedToken else { return }
         let trimmedLabel = label.trimmingCharacters(in: .whitespaces)
         let permissions = permissionsText
-            .split(separator: ",")
+            .split(separator: ";")
             .map { $0.trimmingCharacters(in: .whitespaces) }
             .filter { !$0.isEmpty }
         do {

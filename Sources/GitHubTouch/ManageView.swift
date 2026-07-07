@@ -24,14 +24,14 @@ private struct TokenRowEditor: View {
     init(token: TokenEntry) {
         self.token = token
         _label = State(initialValue: token.label)
-        _permissionsText = State(initialValue: token.permissions.joined(separator: ", "))
+        _permissionsText = State(initialValue: token.permissions.joined(separator: "; "))
         _notes = State(initialValue: token.notes)
         _summaryText = State(initialValue: token.summary ?? "")
     }
 
     private var dirty: Bool {
         label != token.label
-            || permissionsText != token.permissions.joined(separator: ", ")
+            || permissionsText != token.permissions.joined(separator: "; ")
             || notes != token.notes
             || summaryText != (token.summary ?? "")
     }
@@ -49,7 +49,7 @@ private struct TokenRowEditor: View {
                 }
             }
             TextField("Menu summary", text: $summaryText)
-            TextField("Permissions (comma-separated)", text: $permissionsText)
+            TextField("Permissions (semicolon-separated)", text: $permissionsText)
             TextField("Notes", text: $notes)
             HStack {
                 Button("Delete…", role: .destructive) { confirmingDelete = true }
@@ -61,7 +61,7 @@ private struct TokenRowEditor: View {
                     }
                 Spacer()
                 Button("Save Changes") {
-                    let permissions = permissionsText.split(separator: ",")
+                    let permissions = permissionsText.split(separator: ";")
                         .map { $0.trimmingCharacters(in: .whitespaces) }
                         .filter { !$0.isEmpty }
                     let trimmedSummary = summaryText.trimmingCharacters(in: .whitespaces)

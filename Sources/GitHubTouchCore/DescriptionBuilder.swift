@@ -41,7 +41,7 @@ public enum DescriptionBuilder {
                 detailLine(probe.orgs, granted: { _ in "org read access" },
                            deniedName: "org", unknownName: "org"),
                 detailLine(probe.gists, granted: { _ in "gist read access" },
-                           deniedName: "gist", unknownName: "gists"),
+                           deniedName: "gist", unknownName: "gist"),
                 detailLine(probe.notifications, granted: { _ in "notifications read access" },
                            deniedName: "notifications", unknownName: "notifications"),
                 detailLine(probe.emails, granted: { _ in "email read access" },
