@@ -123,22 +123,24 @@ final class AppState: ObservableObject {
 
     // MARK: - Vault mutations
 
-    func addToken(label: String, kind: TokenKind, permissions: [String],
+    func addToken(label: String, kind: TokenKind, permissions: [String], summary: String?,
                   expiresAt: Date?, notes: String, secret: String) throws {
         var v = try ensureVault()
         let sealed = try VaultCrypto.seal(secret, recipientPub: v.sePub)
         v.tokens.append(TokenEntry(
             id: UUID(), label: label, kind: kind, permissions: permissions,
             expiresAt: expiresAt, createdAt: Date(), lastActivatedAt: nil, notes: notes,
+            summary: summary,
             ephemeralPub: sealed.ephemeralPub, ciphertext: sealed.ciphertext))
         try store.save(v)
         vault = v
     }
 
-    func updateMetadata(id: UUID, label: String, permissions: [String], notes: String) {
+    func updateMetadata(id: UUID, label: String, permissions: [String], summary: String?, notes: String) {
         guard var v = vault, let index = v.tokens.firstIndex(where: { $0.id == id }) else { return }
         v.tokens[index].label = label
         v.tokens[index].permissions = permissions
+        v.tokens[index].summary = summary
         v.tokens[index].notes = notes
         do {
             try store.save(v)
@@ -216,8 +218,11 @@ extension AppState {
         }
         let info = try await TokenValidator().validate(token)
         let label = "full access (legacy OAuth)"
+        let generated = DescriptionBuilder.build(kind: .oauth, scopes: info.scopes,
+                                                 probe: nil, expiresAt: info.expiresAt)
         try addToken(label: label, kind: .oauth,
-                     permissions: info.scopes ?? [],
+                     permissions: generated.details.isEmpty ? (info.scopes ?? []) : generated.details,
+                     summary: generated.summary.isEmpty ? nil : generated.summary,
                      expiresAt: info.expiresAt,
                      notes: "imported from gh keychain on \(Date().formatted(date: .abbreviated, time: .omitted))",
                      secret: token)

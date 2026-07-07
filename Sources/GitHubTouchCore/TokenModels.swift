@@ -21,12 +21,13 @@ public struct TokenEntry: Codable, Identifiable, Equatable, Sendable {
     public var createdAt: Date
     public var lastActivatedAt: Date?
     public var notes: String
+    public var summary: String?
     public var ephemeralPub: Data
     public var ciphertext: Data
 
     public init(id: UUID, label: String, kind: TokenKind, permissions: [String],
                 expiresAt: Date?, createdAt: Date, lastActivatedAt: Date?, notes: String,
-                ephemeralPub: Data, ciphertext: Data) {
+                summary: String? = nil, ephemeralPub: Data, ciphertext: Data) {
         self.id = id
         self.label = label
         self.kind = kind
@@ -35,6 +36,7 @@ public struct TokenEntry: Codable, Identifiable, Equatable, Sendable {
         self.createdAt = createdAt
         self.lastActivatedAt = lastActivatedAt
         self.notes = notes
+        self.summary = summary
         self.ephemeralPub = ephemeralPub
         self.ciphertext = ciphertext
     }
@@ -46,6 +48,12 @@ public struct TokenEntry: Codable, Identifiable, Equatable, Sendable {
 
     public var permissionSummary: String {
         permissions.isEmpty ? "no recorded permissions" : permissions.joined(separator: ", ")
+    }
+
+    /// What the menu row shows: the generated summary when present, else the
+    /// raw permissions join.
+    public var menuSummary: String {
+        summary ?? permissionSummary
     }
 }
 

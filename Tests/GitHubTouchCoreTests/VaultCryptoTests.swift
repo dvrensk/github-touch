@@ -53,4 +53,17 @@ final class VaultCryptoTests: XCTestCase {
         entry.expiresAt = Date(timeIntervalSinceNow: 60)
         XCTAssertFalse(entry.isExpired())
     }
+
+    func testTokenEntryDecodesWithoutSummaryKey() throws {
+        let json = """
+        {"id":"00000000-0000-0000-0000-000000000001","label":"old","kind":"classic",
+         "permissions":["repo"],"createdAt":"2026-07-07T12:00:00Z","notes":"",
+         "ephemeralPub":"","ciphertext":""}
+        """
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        let entry = try decoder.decode(TokenEntry.self, from: Data(json.utf8))
+        XCTAssertNil(entry.summary)
+        XCTAssertEqual(entry.menuSummary, "repo")
+    }
 }

@@ -125,6 +125,7 @@ struct AddTokenView: View {
             .filter { !$0.isEmpty }
         do {
             try state.addToken(label: trimmedLabel, kind: kind, permissions: permissions,
+                               summary: nil,
                                expiresAt: info.expiresAt, notes: notes, secret: token)
             validatedToken = nil
             pastedToken = ""

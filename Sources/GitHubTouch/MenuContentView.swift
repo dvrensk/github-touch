@@ -69,7 +69,7 @@ struct MenuContentView: View {
                 if token.isExpired() {
                     Text("\(token.label) — expired")
                 } else {
-                    Text("\(token.label)  (\(token.permissionSummary))")
+                    Text("\(token.label)  (\(token.menuSummary))")
                 }
             }
             .disabled(token.isExpired() || token.id == state.activation.activeTokenId)

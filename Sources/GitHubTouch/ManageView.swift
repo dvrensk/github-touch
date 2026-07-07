@@ -61,7 +61,7 @@ private struct TokenRowEditor: View {
                         .map { $0.trimmingCharacters(in: .whitespaces) }
                         .filter { !$0.isEmpty }
                     state.updateMetadata(id: token.id, label: label,
-                                         permissions: permissions, notes: notes)
+                                         permissions: permissions, summary: token.summary, notes: notes)
                 }
                 .disabled(!dirty)
             }
