@@ -73,7 +73,7 @@ struct AddTokenView: View {
                 }
                 Button("Save to Vault") { save() }
                     .keyboardShortcut(.defaultAction)
-                    .disabled(validatedInfo == nil || label.trimmingCharacters(in: .whitespaces).isEmpty)
+                    .disabled(validating || validatedInfo == nil || label.trimmingCharacters(in: .whitespaces).isEmpty)
             }
         }
         .padding(20)
