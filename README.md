@@ -62,3 +62,7 @@ off this machine.
    + relaunch, and after sleep + wake.
 5. Revoking: delete a vault entry, then revoke the token on
    github.com/settings/tokens (deleting here does not revoke there).
+6. Touch ID cancel: start an activation, cancel the Touch ID prompt —
+   the app must stay silent (no error notification).
+7. First notification: on the very first activation, the notification
+   permission prompt must not freeze the menu bar UI.

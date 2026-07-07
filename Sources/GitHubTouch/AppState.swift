@@ -96,6 +96,9 @@ final class AppState: ObservableObject {
             } catch {
                 lastError = "\(error)"
                 Notifier.post("Could not clear the token: \(error.localizedDescription)")
+                if activation.isOverdue() {
+                    scheduleClear(at: Date(timeIntervalSinceNow: 60))  // keep retrying an overdue clear
+                }
             }
         }
     }
@@ -137,14 +140,22 @@ final class AppState: ObservableObject {
         v.tokens[index].label = label
         v.tokens[index].permissions = permissions
         v.tokens[index].notes = notes
-        try? store.save(v)
+        do {
+            try store.save(v)
+        } catch {
+            Notifier.post("Could not save the vault: \(error.localizedDescription)")
+        }
         vault = v
     }
 
     func deleteToken(id: UUID) {
         guard var v = vault else { return }
         v.tokens.removeAll { $0.id == id }
-        try? store.save(v)
+        do {
+            try store.save(v)
+        } catch {
+            Notifier.post("Could not save the vault: \(error.localizedDescription)")
+        }
         vault = v
     }
 
@@ -152,12 +163,19 @@ final class AppState: ObservableObject {
         try? FileManager.default.removeItem(at: store.vaultURL)
         vault = nil
         vaultCorrupt = false
+        activation = ActivationState()
+        stateStore.save(activation)
+        clearTimer?.invalidate()
     }
 
     private func markActivated(_ id: UUID) {
         guard var v = vault, let index = v.tokens.firstIndex(where: { $0.id == id }) else { return }
         v.tokens[index].lastActivatedAt = Date()
-        try? store.save(v)
+        do {
+            try store.save(v)
+        } catch {
+            Notifier.post("Could not save the vault: \(error.localizedDescription)")
+        }
         vault = v
     }
 

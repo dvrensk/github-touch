@@ -5,6 +5,17 @@ public enum GhError: Error, Equatable {
     case logoutFailed(String)
 }
 
+extension GhError: LocalizedError {
+    public var errorDescription: String? {
+        switch self {
+        case .loginFailed(let stderr):
+            return "gh auth login failed: \(stderr)"
+        case .logoutFailed(let stderr):
+            return "gh auth logout failed: \(stderr)"
+        }
+    }
+}
+
 public struct GhBridge {
     public let ghPath: String
 

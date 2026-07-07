@@ -11,6 +11,17 @@ public enum TokenValidationError: Error, Equatable {
     case unexpectedStatus(Int)
 }
 
+extension TokenValidationError: LocalizedError {
+    public var errorDescription: String? {
+        switch self {
+        case .invalidToken:
+            return "GitHub rejected the token (401)."
+        case .unexpectedStatus(let code):
+            return "GitHub returned an unexpected HTTP \(code)."
+        }
+    }
+}
+
 public struct TokenValidator {
     let session: URLSession
 

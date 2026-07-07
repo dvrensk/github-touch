@@ -3,12 +3,16 @@ import UserNotifications
 
 enum Notifier {
     static func post(_ message: String, title: String = "GitHub Touch") {
-        if postBundleNotification(message, title: title) { return }
-        let escaped = message.replacingOccurrences(of: "\"", with: "\\\"")
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
-        process.arguments = ["-e", "display notification \"\(escaped)\" with title \"\(title)\""]
-        try? process.run()
+        DispatchQueue.global().async {
+            if postBundleNotification(message, title: title) { return }
+            let escaped = message
+                .replacingOccurrences(of: "\\", with: "\\\\")
+                .replacingOccurrences(of: "\"", with: "\\\"")
+            let process = Process()
+            process.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
+            process.arguments = ["-e", "display notification \"\(escaped)\" with title \"\(title)\""]
+            try? process.run()
+        }
     }
 
     private static func postBundleNotification(_ message: String, title: String) -> Bool {
