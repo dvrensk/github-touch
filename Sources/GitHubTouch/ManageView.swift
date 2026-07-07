@@ -8,7 +8,7 @@ struct ManageView: View {
         List(state.tokens) { token in
             TokenRowEditor(token: token)
         }
-        .frame(width: 520, height: max(200, CGFloat(state.tokens.count) * 130))
+        .frame(width: 520, height: max(200, CGFloat(state.tokens.count) * 150))
     }
 }
 
@@ -18,6 +18,7 @@ private struct TokenRowEditor: View {
     @State private var label: String
     @State private var permissionsText: String
     @State private var notes: String
+    @State private var summaryText: String
     @State private var confirmingDelete = false
 
     init(token: TokenEntry) {
@@ -25,12 +26,14 @@ private struct TokenRowEditor: View {
         _label = State(initialValue: token.label)
         _permissionsText = State(initialValue: token.permissions.joined(separator: ", "))
         _notes = State(initialValue: token.notes)
+        _summaryText = State(initialValue: token.summary ?? "")
     }
 
     private var dirty: Bool {
         label != token.label
             || permissionsText != token.permissions.joined(separator: ", ")
             || notes != token.notes
+            || summaryText != (token.summary ?? "")
     }
 
     var body: some View {
@@ -45,6 +48,7 @@ private struct TokenRowEditor: View {
                         .foregroundStyle(.secondary)
                 }
             }
+            TextField("Menu summary", text: $summaryText)
             TextField("Permissions (comma-separated)", text: $permissionsText)
             TextField("Notes", text: $notes)
             HStack {
@@ -60,8 +64,11 @@ private struct TokenRowEditor: View {
                     let permissions = permissionsText.split(separator: ",")
                         .map { $0.trimmingCharacters(in: .whitespaces) }
                         .filter { !$0.isEmpty }
+                    let trimmedSummary = summaryText.trimmingCharacters(in: .whitespaces)
                     state.updateMetadata(id: token.id, label: label,
-                                         permissions: permissions, summary: token.summary, notes: notes)
+                                         permissions: permissions,
+                                         summary: trimmedSummary.isEmpty ? nil : trimmedSummary,
+                                         notes: notes)
                 }
                 .disabled(!dirty)
             }

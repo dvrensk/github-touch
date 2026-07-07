@@ -16,6 +16,8 @@ struct AddTokenView: View {
     @State private var validatedToken: String?
     @State private var validating = false
     @State private var errorMessage: String?
+    @State private var summaryText = ""
+    @State private var probing = false
 
     var body: some View {
         Form {
@@ -49,6 +51,11 @@ struct AddTokenView: View {
                     Text("Valid for @\(info.login)"
                          + (info.expiresAt.map { ", expires \($0.formatted(date: .abbreviated, time: .omitted))" } ?? ""))
                         .foregroundStyle(.green)
+                    if probing {
+                        Text("Probing what this token can do…")
+                            .font(.callout).foregroundStyle(.secondary)
+                    }
+                    TextField("Menu summary", text: $summaryText)
                     TextField("Permissions (comma-separated)", text: $permissionsText)
                     TextField("Notes", text: $notes)
                 }
@@ -74,10 +81,12 @@ struct AddTokenView: View {
         .onChange(of: pastedToken) { _ in
             validatedInfo = nil
             validatedToken = nil
+            summaryText = ""
         }
         .onChange(of: kind) { _ in
             validatedInfo = nil
             validatedToken = nil
+            summaryText = ""
         }
     }
 
@@ -105,8 +114,13 @@ struct AddTokenView: View {
                 guard token == pastedToken else { return }  // field changed mid-flight; result is stale
                 validatedInfo = info
                 validatedToken = token
-                if let scopes = info.scopes {
-                    permissionsText = scopes.joined(separator: ", ")
+                if info.scopes != nil || kind != .fineGrained {
+                    let generated = DescriptionBuilder.build(kind: kind, scopes: info.scopes,
+                                                             probe: nil, expiresAt: info.expiresAt)
+                    summaryText = generated.summary
+                    permissionsText = generated.details.joined(separator: ", ")
+                } else {
+                    await runProbe(token: token, info: info)
                 }
             } catch TokenValidationError.invalidToken {
                 errorMessage = "GitHub rejected that token (401). Check the paste and try again."
@@ -114,6 +128,19 @@ struct AddTokenView: View {
                 errorMessage = "Validation failed: \(error.localizedDescription)"
             }
         }
+    }
+
+    /// Fine-grained tokens reveal nothing via headers; probe read access.
+    @MainActor
+    private func runProbe(token: String, info: TokenInfo) async {
+        probing = true
+        defer { probing = false }
+        let report = try? await CapabilityProber().probe(token)
+        guard token == pastedToken else { return }  // field changed mid-flight
+        let generated = DescriptionBuilder.build(kind: .fineGrained, scopes: nil,
+                                                 probe: report, expiresAt: info.expiresAt)
+        summaryText = generated.summary
+        permissionsText = generated.details.joined(separator: ", ")
     }
 
     private func save() {
@@ -125,7 +152,8 @@ struct AddTokenView: View {
             .filter { !$0.isEmpty }
         do {
             try state.addToken(label: trimmedLabel, kind: kind, permissions: permissions,
-                               summary: nil,
+                               summary: summaryText.trimmingCharacters(in: .whitespaces).isEmpty
+                                   ? nil : summaryText.trimmingCharacters(in: .whitespaces),
                                expiresAt: info.expiresAt, notes: notes, secret: token)
             validatedToken = nil
             pastedToken = ""
