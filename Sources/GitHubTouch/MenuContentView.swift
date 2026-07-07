@@ -7,6 +7,13 @@ struct MenuContentView: View {
     @Environment(\.openWindow) private var openWindow
 
     var body: some View {
+        Group {
+            content
+        }
+        .onAppear { state.refreshGhLoginState() }
+    }
+
+    @ViewBuilder private var content: some View {
         if state.gh == nil {
             Text("gh CLI not found")
             Text("Install it with: brew install gh")

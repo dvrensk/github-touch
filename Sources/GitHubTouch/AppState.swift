@@ -9,6 +9,7 @@ final class AppState: ObservableObject {
     @Published var activation = ActivationState()
     @Published var lastError: String?
     @Published var vaultCorrupt = false
+    @Published var ghLoggedIn = false
 
     let gh = GhBridge.discover()
     let store: VaultStore
@@ -29,6 +30,15 @@ final class AppState: ObservableObject {
             forName: NSWorkspace.didWakeNotification, object: nil, queue: .main
         ) { [weak self] _ in
             Task { @MainActor in self?.checkDeadline() }
+        }
+        refreshGhLoginState()
+    }
+
+    func refreshGhLoginState() {
+        guard let gh else { return }
+        Task {
+            let loggedIn = await Task.detached { gh.isLoggedIn() }.value
+            self.ghLoggedIn = loggedIn
         }
     }
 
@@ -55,6 +65,7 @@ final class AppState: ObservableObject {
                 stateStore.save(activation)
                 markActivated(entry.id)
                 scheduleClear(at: clearAt)
+                ghLoggedIn = true
                 Notifier.post("“\(entry.label)” active until midnight.")
             } catch let error as LAError where error.code == .userCancel || error.code == .appCancel {
                 // user changed their mind — stay silent
@@ -80,6 +91,7 @@ final class AppState: ObservableObject {
                 activation = ActivationState()
                 stateStore.save(activation)
                 clearTimer?.invalidate()
+                ghLoggedIn = false
                 if !silent { Notifier.post("GitHub token cleared.") }
             } catch {
                 lastError = "\(error)"
@@ -163,12 +175,21 @@ final class AppState: ObservableObject {
 extension AppState {
     /// Offer the migration while the vault has no tokens but gh is still logged in.
     var canImportExistingToken: Bool {
-        tokens.isEmpty && (gh?.isLoggedIn() ?? false)
+        tokens.isEmpty && ghLoggedIn
     }
 
     enum ImportError: LocalizedError {
         case noToken
-        var errorDescription: String? { "gh reported no current token." }
+        case logoutFailed
+
+        var errorDescription: String? {
+            switch self {
+            case .noToken:
+                return "gh reported no current token."
+            case .logoutFailed:
+                return "Token imported to the vault, but logging gh out failed — run `gh auth logout` in a terminal."
+            }
+        }
     }
 
     func importCurrentToken() async throws -> String {
@@ -182,9 +203,14 @@ extension AppState {
                      expiresAt: info.expiresAt,
                      notes: "imported from gh keychain on \(Date().formatted(date: .abbreviated, time: .omitted))",
                      secret: token)
-        try await Task.detached { try gh.deactivate() }.value
+        do {
+            try await Task.detached { try gh.deactivate() }.value
+        } catch {
+            throw ImportError.logoutFailed
+        }
         activation = ActivationState()
         stateStore.save(activation)
+        ghLoggedIn = false
         return label
     }
 }
