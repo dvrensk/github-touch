@@ -1,12 +1,16 @@
 #!/bin/bash
-# Render the chosen SVG into AppIcon.icns and the menu bar template PNGs.
+# Render the chosen SVG designs into AppIcon.icns and the menu bar template PNGs.
+#
+# Rendering is done by render-icons.swift (native CoreGraphics), not
+# qlmanage: qlmanage -t rasterizes SVGs against an opaque white QuickLook
+# canvas, which bakes an opaque white background into the PNG and breaks
+# both the app icon's rounded-corner transparency and the menu bar
+# template image's alpha-based rendering.
 set -euo pipefail
 cd "$(dirname "$0")"
-CHOSEN=a-print-key.svg
 
-rm -rf AppIcon.iconset app-1024.png
-qlmanage -t -s 1024 -o . "$CHOSEN" >/dev/null
-mv "$CHOSEN.png" app-1024.png
+rm -rf AppIcon.iconset app-1024.png MenuIconTemplate.png MenuIconTemplate@2x.png
+swift render-icons.swift
 
 mkdir AppIcon.iconset
 for size in 16 32 128 256 512; do
@@ -17,7 +21,4 @@ done
 iconutil -c icns AppIcon.iconset -o AppIcon.icns
 rm -rf AppIcon.iconset app-1024.png
 
-qlmanage -t -s 36 -o . menubar.svg >/dev/null
-mv menubar.svg.png MenuIconTemplate@2x.png
-sips -z 18 18 MenuIconTemplate@2x.png --out MenuIconTemplate.png >/dev/null
 echo "AppIcon.icns and MenuIconTemplate PNGs written."
