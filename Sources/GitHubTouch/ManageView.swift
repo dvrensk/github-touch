@@ -1,0 +1,71 @@
+import GitHubTouchCore
+import SwiftUI
+
+struct ManageView: View {
+    @EnvironmentObject var state: AppState
+
+    var body: some View {
+        List(state.tokens) { token in
+            TokenRowEditor(token: token)
+        }
+        .frame(width: 520, height: max(200, CGFloat(state.tokens.count) * 130))
+    }
+}
+
+private struct TokenRowEditor: View {
+    @EnvironmentObject var state: AppState
+    let token: TokenEntry
+    @State private var label: String
+    @State private var permissionsText: String
+    @State private var notes: String
+    @State private var confirmingDelete = false
+
+    init(token: TokenEntry) {
+        self.token = token
+        _label = State(initialValue: token.label)
+        _permissionsText = State(initialValue: token.permissions.joined(separator: ", "))
+        _notes = State(initialValue: token.notes)
+    }
+
+    private var dirty: Bool {
+        label != token.label
+            || permissionsText != token.permissions.joined(separator: ", ")
+            || notes != token.notes
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                TextField("Label", text: $label).font(.headline)
+                Text(token.kind.displayName).foregroundStyle(.secondary)
+                if token.isExpired() {
+                    Text("expired").foregroundStyle(.red)
+                } else if let expiry = token.expiresAt {
+                    Text("expires \(expiry.formatted(date: .abbreviated, time: .omitted))")
+                        .foregroundStyle(.secondary)
+                }
+            }
+            TextField("Permissions (comma-separated)", text: $permissionsText)
+            TextField("Notes", text: $notes)
+            HStack {
+                Button("Delete…", role: .destructive) { confirmingDelete = true }
+                    .confirmationDialog("Delete \"\(token.label)\" from the vault?",
+                                        isPresented: $confirmingDelete) {
+                        Button("Delete", role: .destructive) { state.deleteToken(id: token.id) }
+                    } message: {
+                        Text("The token itself keeps working on GitHub until you revoke it there.")
+                    }
+                Spacer()
+                Button("Save Changes") {
+                    let permissions = permissionsText.split(separator: ",")
+                        .map { $0.trimmingCharacters(in: .whitespaces) }
+                        .filter { !$0.isEmpty }
+                    state.updateMetadata(id: token.id, label: label,
+                                         permissions: permissions, notes: notes)
+                }
+                .disabled(!dirty)
+            }
+        }
+        .padding(.vertical, 8)
+    }
+}
