@@ -36,6 +36,16 @@ struct MenuContentView: View {
                 Button("Manage Tokens…") { open(windowId: "manage-tokens") }
             }
             Divider()
+            LaunchAtLoginToggle()
+            #if DEBUG
+            Button("Debug: Clear in 1 Minute") {
+                var s = state.activation
+                s.clearAt = Date(timeIntervalSinceNow: 60)
+                state.activation = s
+                state.stateStore.save(s)
+                state.scheduleClear(at: s.clearAt!)
+            }
+            #endif
             Button("Quit GitHub Touch") { NSApp.terminate(nil) }
         }
     }

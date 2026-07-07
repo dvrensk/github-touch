@@ -39,4 +39,7 @@ codesign -s - --force --deep "$APP"
 
 rm -rf ~/Applications/"$APP"
 cp -R "$APP" ~/Applications/
+
+"./$APP/Contents/MacOS/GitHubTouch" --test-plumbing
+
 echo "Built, signed, and installed to ~/Applications/$APP"
