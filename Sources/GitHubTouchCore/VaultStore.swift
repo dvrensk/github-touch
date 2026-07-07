@@ -27,8 +27,14 @@ public final class VaultStore {
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-        try encoder.encode(vault).write(to: vaultURL, options: .atomic)
-        try FileManager.default.setAttributes(
-            [.posixPermissions: 0o600], ofItemAtPath: vaultURL.path)
+        let data = try encoder.encode(vault)
+
+        let tmpURL = vaultURL.appendingPathExtension("tmp")
+        let created = FileManager.default.createFile(
+            atPath: tmpURL.path, contents: data, attributes: [.posixPermissions: 0o600])
+        guard created else { throw VaultError.writeFailed }
+
+        _ = try FileManager.default.replaceItemAt(
+            vaultURL, withItemAt: tmpURL, options: .usingNewMetadataOnly)
     }
 }

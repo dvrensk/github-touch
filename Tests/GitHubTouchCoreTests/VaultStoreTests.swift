@@ -36,6 +36,17 @@ final class VaultStoreTests: XCTestCase {
         XCTAssertEqual((attrs[.posixPermissions] as? NSNumber)?.int16Value, 0o600)
     }
 
+    func testSaveOverwritesExistingVault() throws {
+        let store = VaultStore(directory: dir)
+        try store.save(makeVault())
+        let second = VaultFile(version: 1, seKey: Data([7]), sePub: Data([2]), tokens: [])
+        try store.save(second)
+        let back = try XCTUnwrap(store.load())
+        XCTAssertEqual(back.seKey, Data([7]))
+        let attrs = try FileManager.default.attributesOfItem(atPath: store.vaultURL.path)
+        XCTAssertEqual((attrs[.posixPermissions] as? NSNumber)?.int16Value, 0o600)
+    }
+
     func testLoadThrowsOnCorruptFile() throws {
         let store = VaultStore(directory: dir)
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)

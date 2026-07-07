@@ -4,6 +4,7 @@ import LocalAuthentication
 
 public enum VaultError: Error {
     case corruptCiphertext
+    case writeFailed
 }
 
 // Abstracts over the Secure Enclave key (production) and a software P256 key
