@@ -7,6 +7,9 @@ enum Main {
         if CommandLine.arguments.contains("--test-plumbing") {
             testPlumbing()
         }
+        if CommandLine.arguments.contains("--test-notify") {
+            Notifier.testNotify()
+        }
         GitHubTouchApp.main()
     }
 

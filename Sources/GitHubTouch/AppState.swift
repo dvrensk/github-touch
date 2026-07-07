@@ -32,6 +32,7 @@ final class AppState: ObservableObject {
             Task { @MainActor in self?.checkDeadline() }
         }
         refreshGhLoginState()
+        Notifier.bootstrap()
     }
 
     func refreshGhLoginState() {
