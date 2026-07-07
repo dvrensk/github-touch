@@ -47,8 +47,13 @@ public struct CapabilityProber {
             for endpoint in Endpoint.allCases {
                 group.addTask { (endpoint, try await probeOne(endpoint, token: token)) }
             }
-            for try await (endpoint, outcome) in group {
-                outcomes[endpoint] = outcome
+            do {
+                for try await (endpoint, outcome) in group {
+                    outcomes[endpoint] = outcome
+                }
+            } catch {
+                group.cancelAll()
+                throw error
             }
         }
         return ProbeReport(repos: outcomes[.repos] ?? .unknown,
