@@ -58,7 +58,12 @@ struct AddTokenView: View {
             }
             HStack {
                 Spacer()
-                Button("Cancel") { dismiss() }
+                Button("Cancel") {
+                    pastedToken = ""
+                    validatedToken = nil
+                    validatedInfo = nil
+                    dismiss()
+                }
                 Button("Save to Vault") { save() }
                     .keyboardShortcut(.defaultAction)
                     .disabled(validatedInfo == nil || label.trimmingCharacters(in: .whitespaces).isEmpty)
@@ -97,6 +102,7 @@ struct AddTokenView: View {
             defer { validating = false }
             do {
                 let info = try await TokenValidator().validate(token)
+                guard token == pastedToken else { return }  // field changed mid-flight; result is stale
                 validatedInfo = info
                 validatedToken = token
                 if let scopes = info.scopes {
