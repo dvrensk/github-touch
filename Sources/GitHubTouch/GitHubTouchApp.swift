@@ -18,5 +18,9 @@ struct GitHubTouchApp: App {
             Text("Manage — coming in Task 10").padding().frame(width: 300)
         }
         .windowResizability(.contentSize)
+        Window("Import Token", id: "import-token") {
+            ImportTokenView().environmentObject(state)
+        }
+        .windowResizability(.contentSize)
     }
 }

@@ -15,6 +15,9 @@ struct MenuContentView: View {
             Button("Reset Vault…") { state.resetVault() }
         } else {
             header
+            if state.canImportExistingToken {
+                Button("Import current gh token…") { open(windowId: "import-token") }
+            }
             Divider()
             tokenRows
             Divider()

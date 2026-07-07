@@ -159,3 +159,32 @@ final class AppState: ObservableObject {
         return v
     }
 }
+
+extension AppState {
+    /// Offer the migration while the vault has no tokens but gh is still logged in.
+    var canImportExistingToken: Bool {
+        tokens.isEmpty && (gh?.isLoggedIn() ?? false)
+    }
+
+    enum ImportError: LocalizedError {
+        case noToken
+        var errorDescription: String? { "gh reported no current token." }
+    }
+
+    func importCurrentToken() async throws -> String {
+        guard let gh, let token = await Task.detached(operation: { gh.currentToken() }).value else {
+            throw ImportError.noToken
+        }
+        let info = try await TokenValidator().validate(token)
+        let label = "full access (legacy OAuth)"
+        try addToken(label: label, kind: .oauth,
+                     permissions: info.scopes ?? [],
+                     expiresAt: info.expiresAt,
+                     notes: "imported from gh keychain on \(Date().formatted(date: .abbreviated, time: .omitted))",
+                     secret: token)
+        try await Task.detached { try gh.deactivate() }.value
+        activation = ActivationState()
+        stateStore.save(activation)
+        return label
+    }
+}
