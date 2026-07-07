@@ -16,9 +16,10 @@ final class GhBridgeTests: XCTestCase {
         #!/bin/bash
         D="$(cd "$(dirname "$0")" && pwd)"
         echo "$*" >> "$D/log"
+        echo "GH_TOKEN=${GH_TOKEN-unset} GITHUB_TOKEN=${GITHUB_TOKEN-unset}" > "$D/env.txt"
         case "$1 $2" in
           "auth status") [ -f "$D/state" ] && exit 0 || exit 1 ;;
-          "auth login")  cat > "$D/stdin.txt"; touch "$D/state"; exit 0 ;;
+          "auth login")  cat > "$D/stdin.txt"; if [ -f "$D/fail-login" ]; then echo "boom" >&2; exit 1; fi; touch "$D/state"; exit 0 ;;
           "auth logout") rm -f "$D/state"; exit 0 ;;
           "auth token")  [ -f "$D/state" ] && { echo "gho_fake123"; exit 0; } || exit 1 ;;
         esac
@@ -66,5 +67,24 @@ final class GhBridgeTests: XCTestCase {
 
     func testDiscoverFindsExecutable() {
         XCTAssertEqual(GhBridge.discover(extraPaths: [ghPath])?.ghPath, ghPath)
+    }
+
+    func testChildEnvironmentHasTokenVarsStripped() throws {
+        setenv("GH_TOKEN", "leak1", 1)
+        setenv("GITHUB_TOKEN", "leak2", 1)
+        defer {
+            unsetenv("GH_TOKEN")
+            unsetenv("GITHUB_TOKEN")
+        }
+        _ = bridge.isLoggedIn()
+        let env = try String(contentsOf: dir.appendingPathComponent("env.txt"), encoding: .utf8)
+        XCTAssertEqual(env, "GH_TOKEN=unset GITHUB_TOKEN=unset\n")
+    }
+
+    func testActivateThrowsLoginFailedOnGhError() throws {
+        try "".write(toFile: dir.appendingPathComponent("fail-login").path, atomically: true, encoding: .utf8)
+        XCTAssertThrowsError(try bridge.activate(token: "t")) { error in
+            XCTAssertEqual(error as? GhError, .loginFailed("boom"))
+        }
     }
 }

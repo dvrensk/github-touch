@@ -54,9 +54,23 @@ public struct GhBridge {
             inPipe.fileHandleForWriting.write(Data(input.utf8))
             inPipe.fileHandleForWriting.closeFile()
         }
-        let stdout = String(decoding: out.fileHandleForReading.readDataToEndOfFile(), as: UTF8.self)
-        let stderr = String(decoding: err.fileHandleForReading.readDataToEndOfFile(), as: UTF8.self)
+        var stdoutData = Data()
+        var stderrData = Data()
+        let group = DispatchGroup()
+        group.enter()
+        DispatchQueue.global().async {
+            stdoutData = out.fileHandleForReading.readDataToEndOfFile()
+            group.leave()
+        }
+        group.enter()
+        DispatchQueue.global().async {
+            stderrData = err.fileHandleForReading.readDataToEndOfFile()
+            group.leave()
+        }
+        group.wait()
         process.waitUntilExit()
+        let stdout = String(decoding: stdoutData, as: UTF8.self)
+        let stderr = String(decoding: stderrData, as: UTF8.self)
         return ProcessResult(status: process.terminationStatus, stdout: stdout, stderr: stderr)
     }
 
