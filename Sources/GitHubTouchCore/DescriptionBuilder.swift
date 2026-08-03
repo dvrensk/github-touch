@@ -18,15 +18,12 @@ public enum DescriptionBuilder {
             details = described
         } else if let probe {
             var parts: [String] = []
-            if case .granted(let names) = probe.repos {
-                let names = names ?? []
-                if names.isEmpty {
-                    parts.append("repos")
-                } else {
-                    let shown = names.prefix(2).joined(separator: ", ")
-                    let more = names.count > 2 ? " (+\(names.count - 2))" : ""
-                    parts.append("repos: \(shown)\(more)")
-                }
+            if case .granted(let names) = probe.repos, let names, !names.isEmpty {
+                // An empty list means no repo grants were found — the 200
+                // only proves public read, which every token has.
+                let shown = names.prefix(2).joined(separator: ", ")
+                let more = names.count > 2 ? " (+\(names.count - 2))" : ""
+                parts.append("repos: \(shown)\(more)")
             }
             if case .granted = probe.orgs { parts.append("orgs") }
             if case .granted = probe.gists { parts.append("gists") }
@@ -36,7 +33,7 @@ public enum DescriptionBuilder {
                                     : truncate(parts.joined(separator: "; "), to: 60)
             details = [
                 detailLine(probe.repos, granted: { names in
-                    "repo access: " + ((names?.isEmpty ?? true) ? "none visible" : names!.joined(separator: ", "))
+                    "repo access: " + ((names?.isEmpty ?? true) ? "none beyond public" : names!.joined(separator: ", "))
                 }, deniedName: "repo", unknownName: "repo"),
                 detailLine(probe.orgs, granted: { _ in "org read access" },
                            deniedName: "org", unknownName: "org"),

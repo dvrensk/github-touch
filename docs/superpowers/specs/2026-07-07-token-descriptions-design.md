@@ -53,7 +53,7 @@ Authorization header, a 5-second per-request timeout, injectable URLSession:
 
 | endpoint | capability probed |
 |---|---|
-| `/user/repos?per_page=100` | repo access; on 200, the returned repo `name`s are exactly the repos the token can see |
+| `/user/repos?per_page=100` | repo access; on 200, the returned repos are filtered to non-public ones (`private` or `internal`) — fine-grained tokens can read every public repo regardless of grants, so public entries carry no signal about what the token was granted |
 | `/user/orgs` | org read |
 | `/gists` | gist read |
 | `/notifications` | notifications read |

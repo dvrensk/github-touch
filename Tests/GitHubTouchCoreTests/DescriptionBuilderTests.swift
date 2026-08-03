@@ -50,6 +50,20 @@ final class DescriptionBuilderTests: XCTestCase {
         ])
     }
 
+    func testFineGrainedEmptyRepoGrantOmittedFromSummary() {
+        // /user/repos 200 with no non-public repos proves nothing beyond the
+        // public read every token has — the summary must not claim repo access.
+        let probe = ProbeReport(repos: .granted(detail: []),
+                                orgs: .granted(detail: nil),
+                                gists: .denied(needed: nil),
+                                notifications: .denied(needed: nil),
+                                emails: .denied(needed: nil))
+        let result = DescriptionBuilder.build(kind: .fineGrained, scopes: nil,
+                                              probe: probe, expiresAt: nil)
+        XCTAssertEqual(result.summary, "orgs")
+        XCTAssertEqual(result.details.first, "repo access: none beyond public")
+    }
+
     func testFineGrainedNothingGranted() {
         let probe = ProbeReport(repos: .denied(needed: nil), orgs: .denied(needed: nil),
                                 gists: .denied(needed: nil), notifications: .denied(needed: nil),

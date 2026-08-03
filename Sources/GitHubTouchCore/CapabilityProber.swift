@@ -80,8 +80,23 @@ public struct CapabilityProber {
         switch http.statusCode {
         case 200:
             guard endpoint == .repos else { return .granted(detail: nil) }
-            struct Repo: Decodable { let name: String }
-            let names = (try? JSONDecoder().decode([Repo].self, from: data))?.map(\.name) ?? []
+            struct Repo: Decodable {
+                let name: String
+                let isPrivate: Bool?
+                let visibility: String?
+                enum CodingKeys: String, CodingKey {
+                    case name, visibility
+                    case isPrivate = "private"
+                }
+            }
+            // Fine-grained tokens can read every public repo regardless of
+            // their repository grants, so /user/repos pads the response with
+            // all the user's public repos. Only non-public entries are
+            // evidence of an actual grant.
+            let repos = (try? JSONDecoder().decode([Repo].self, from: data)) ?? []
+            let names = repos
+                .filter { ($0.isPrivate ?? false) || $0.visibility == "internal" }
+                .map(\.name)
             return .granted(detail: names)
         case 401:
             throw TokenValidationError.invalidToken
