@@ -12,6 +12,11 @@ public enum TokenKind: String, Codable, CaseIterable, Sendable {
     }
 }
 
+/// A user-chosen colour; the app never assigns or infers one.
+public enum TokenTag: String, Codable, CaseIterable, Sendable {
+    case green, orange, red
+}
+
 public struct TokenEntry: Codable, Identifiable, Equatable, Sendable {
     public var id: UUID
     public var label: String
@@ -24,10 +29,12 @@ public struct TokenEntry: Codable, Identifiable, Equatable, Sendable {
     public var summary: String?
     public var ephemeralPub: Data
     public var ciphertext: Data
+    public var tag: TokenTag?
 
     public init(id: UUID, label: String, kind: TokenKind, permissions: [String],
                 expiresAt: Date?, createdAt: Date, lastActivatedAt: Date?, notes: String,
-                summary: String? = nil, ephemeralPub: Data, ciphertext: Data) {
+                summary: String? = nil, ephemeralPub: Data, ciphertext: Data,
+                tag: TokenTag? = nil) {
         self.id = id
         self.label = label
         self.kind = kind
@@ -39,6 +46,7 @@ public struct TokenEntry: Codable, Identifiable, Equatable, Sendable {
         self.summary = summary
         self.ephemeralPub = ephemeralPub
         self.ciphertext = ciphertext
+        self.tag = tag
     }
 
     public func isExpired(now: Date = Date()) -> Bool {
@@ -62,11 +70,14 @@ public struct VaultFile: Codable, Sendable {
     public var seKey: Data   // Secure Enclave private key blob (usable only on this Mac)
     public var sePub: Data   // its x9.63 public key, for sealing without an SE round-trip
     public var tokens: [TokenEntry]
+    public var defaultTokenId: UUID?
 
-    public init(version: Int, seKey: Data, sePub: Data, tokens: [TokenEntry]) {
+    public init(version: Int, seKey: Data, sePub: Data, tokens: [TokenEntry],
+                defaultTokenId: UUID? = nil) {
         self.version = version
         self.seKey = seKey
         self.sePub = sePub
         self.tokens = tokens
+        self.defaultTokenId = defaultTokenId
     }
 }

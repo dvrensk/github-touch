@@ -53,4 +53,31 @@ final class VaultStoreTests: XCTestCase {
         try Data("not json".utf8).write(to: store.vaultURL)
         XCTAssertThrowsError(try store.load())
     }
+
+    func testTagAndDefaultRoundTrip() throws {
+        let store = VaultStore(directory: dir)
+        let id = UUID()
+        let entry = TokenEntry(id: id, label: "deploy", kind: .classic, permissions: [],
+                               expiresAt: nil, createdAt: Date(timeIntervalSince1970: 0),
+                               lastActivatedAt: nil, notes: "",
+                               ephemeralPub: Data([3]), ciphertext: Data([4]), tag: .red)
+        try store.save(VaultFile(version: 1, seKey: Data([1]), sePub: Data([2]),
+                                 tokens: [entry], defaultTokenId: id))
+        let back = try XCTUnwrap(store.load())
+        XCTAssertEqual(back.tokens[0].tag, .red)
+        XCTAssertEqual(back.defaultTokenId, id)
+    }
+
+    func testLegacyVaultWithoutTagOrDefaultDecodes() throws {
+        let store = VaultStore(directory: dir)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        let json = """
+        {"version":1,"seKey":"AQ==","sePub":"Ag==","tokens":[{"id":"6F9619FF-8B86-D011-B42D-00C04FC964FF","label":"old","kind":"classic","permissions":[],"createdAt":"2026-07-07T10:00:00Z","notes":"","ephemeralPub":"Aw==","ciphertext":"BA=="}]}
+        """
+        try Data(json.utf8).write(to: store.vaultURL)
+        let back = try XCTUnwrap(store.load())
+        XCTAssertEqual(back.tokens[0].label, "old")
+        XCTAssertNil(back.tokens[0].tag)
+        XCTAssertNil(back.defaultTokenId)
+    }
 }
