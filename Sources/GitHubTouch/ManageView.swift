@@ -8,7 +8,7 @@ struct ManageView: View {
         List(state.tokens) { token in
             TokenRowEditor(token: token)
         }
-        .frame(width: 520, height: max(200, CGFloat(state.tokens.count) * 150))
+        .frame(width: 520, height: max(200, CGFloat(state.tokens.count) * 180))
     }
 }
 
@@ -47,6 +47,23 @@ private struct TokenRowEditor: View {
                     Text("expires \(expiry.formatted(date: .abbreviated, time: .omitted))")
                         .foregroundStyle(.secondary)
                 }
+            }
+            HStack {
+                Picker("Tag", selection: Binding(
+                    get: { token.tag },
+                    set: { state.setTag(id: token.id, tag: $0) })) {
+                    Text("None").tag(TokenTag?.none)
+                    ForEach(TokenTag.allCases, id: \.self) { tag in
+                        Label { Text(tag.displayName) } icon: { Image(nsImage: tag.dot) }
+                            .tag(TokenTag?.some(tag))
+                    }
+                }
+                .pickerStyle(.segmented)
+                .fixedSize()
+                Spacer()
+                Toggle("Default", isOn: Binding(
+                    get: { state.defaultTokenId == token.id },
+                    set: { state.setDefault(id: $0 ? token.id : nil) }))
             }
             TextField("Menu summary", text: $summaryText)
             TextField("Permissions (semicolon-separated)", text: $permissionsText)
