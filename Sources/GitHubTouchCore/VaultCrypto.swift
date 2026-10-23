@@ -68,8 +68,8 @@ public enum SecureEnclaveVaultKey {
         return try SecureEnclave.P256.KeyAgreement.PrivateKey(accessControl: access)
     }
 
-    public static func load(blob: Data, reason: String) throws -> SecureEnclave.P256.KeyAgreement.PrivateKey {
-        let context = LAContext()
+    public static func load(blob: Data, reason: String,
+                            context: LAContext = LAContext()) throws -> SecureEnclave.P256.KeyAgreement.PrivateKey {
         context.localizedReason = reason
         return try SecureEnclave.P256.KeyAgreement.PrivateKey(
             dataRepresentation: blob, authenticationContext: context)
