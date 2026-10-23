@@ -48,13 +48,17 @@ public struct ActivationState: Equatable, Sendable {
     }
 
     /// Pushes the deadline forward from the current deadline, not from now.
-    public func extended(by duration: ActivationDuration, calendar: Calendar = .current) -> ActivationState {
+    /// "Until midnight" means tonight's midnight, and never shortens a
+    /// timer that already runs past it.
+    public func extended(by duration: ActivationDuration, now: Date = Date(),
+                         calendar: Calendar = .current) -> ActivationState {
         guard let clearAt else { return self }
         var next = self
         if let minutes = duration.minutes {
             next.clearAt = clearAt.addingTimeInterval(TimeInterval(minutes * 60))
+            next.untilMidnight = false
         } else {
-            next.clearAt = nextMidnight(after: clearAt, calendar: calendar)
+            next.clearAt = max(clearAt, nextMidnight(after: now, calendar: calendar))
             next.untilMidnight = true
         }
         return next
@@ -102,7 +106,10 @@ public final class ActivationStateStore {
         ActivationState(
             activeTokenId: defaults.string(forKey: "activeTokenId").flatMap(UUID.init(uuidString:)),
             clearAt: defaults.object(forKey: "clearAt") as? Date,
-            untilMidnight: defaults.bool(forKey: "untilMidnight"))
+            // Builds before durations always timed out at midnight and saved no flag.
+            untilMidnight: defaults.object(forKey: "untilMidnight") == nil
+                ? defaults.object(forKey: "clearAt") != nil
+                : defaults.bool(forKey: "untilMidnight"))
     }
 
     public func save(_ state: ActivationState) {

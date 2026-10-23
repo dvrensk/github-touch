@@ -101,6 +101,10 @@ off this machine.
 13. Changed default: while a timed token runs, make another token the
     default — at the deadline it logs out rather than restoring either.
 14. No default set → the deadline logs out as before.
+15. Delete the active token (e.g. the default) in Manage → `gh` is
+    logged out, not left live.
+16. Duration submenu shows the four choices with one checkmark, and the
+    choice survives a relaunch.
 
 ## License
 

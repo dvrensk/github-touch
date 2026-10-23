@@ -83,7 +83,7 @@ final class ActivationStateTests: XCTestCase {
 
     func testExtendedUntilMidnightSetsFlag() {
         let state = ActivationState(activeTokenId: UUID(), clearAt: t0.addingTimeInterval(600))
-        let extended = state.extended(by: .untilMidnight, calendar: madrid)
+        let extended = state.extended(by: .untilMidnight, now: t0, calendar: madrid)
         XCTAssertEqual(extended.clearAt, date("2026-07-08T00:00:00+02:00"))
         XCTAssertTrue(extended.untilMidnight)
     }
@@ -149,5 +149,36 @@ final class ActivationStateTests: XCTestCase {
         XCTAssertEqual(store.loadDuration(), .untilMidnight)
         store.saveDuration(.thirtyMinutes)
         XCTAssertEqual(store.loadDuration(), .thirtyMinutes)
+    }
+
+    func testExtendedUntilMidnightAfterCrossingMidnightStaysTonight() {
+        // 23:50 with 15 min left → clearAt 00:05; "until midnight" must not
+        // jump to the following night.
+        let now = date("2026-07-07T23:50:00+02:00")
+        let state = ActivationState(activeTokenId: UUID(), clearAt: date("2026-07-08T00:05:00+02:00"))
+        let extended = state.extended(by: .untilMidnight, now: now, calendar: madrid)
+        XCTAssertEqual(extended.clearAt, date("2026-07-08T00:05:00+02:00"))
+    }
+
+    func testExtendedByMinutesClearsUntilMidnight() {
+        let midnight = date("2026-07-08T00:00:00+02:00")
+        let state = ActivationState(activeTokenId: UUID(), clearAt: midnight, untilMidnight: true)
+        let extended = state.extended(by: .thirtyMinutes, now: t0, calendar: madrid)
+        XCTAssertEqual(extended.clearAt, midnight.addingTimeInterval(1800))
+        XCTAssertFalse(extended.untilMidnight)
+    }
+
+    func testStoreTreatsLegacyTimedActivationAsUntilMidnight() throws {
+        let suite = "github-touch-tests-legacy"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defaults.removePersistentDomain(forName: suite)
+        defer { defaults.removePersistentDomain(forName: suite) }
+        // what a pre-duration build saved: an id and a midnight clearAt, no flag
+        defaults.set(UUID().uuidString, forKey: "activeTokenId")
+        defaults.set(Date(timeIntervalSince1970: 1_790_000_000), forKey: "clearAt")
+        XCTAssertTrue(ActivationStateStore(defaults: defaults).load().untilMidnight)
+
+        defaults.removeObject(forKey: "clearAt")
+        XCTAssertFalse(ActivationStateStore(defaults: defaults).load().untilMidnight)
     }
 }

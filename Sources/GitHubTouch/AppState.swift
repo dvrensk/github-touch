@@ -199,7 +199,12 @@ final class AppState: ObservableObject {
 
     private func switchToHeldDefault() async {
         guard let gh, let held = heldDefault,
-              let label = tokens.first(where: { $0.id == held.id })?.label else { return }
+              let label = tokens.first(where: { $0.id == held.id })?.label else {
+            // The default went away between deciding and acting; a deadline
+            // must still end the hot token.
+            if activation.isOverdue() { await deactivate()?.value }
+            return
+        }
         let secret = held.secret
         do {
             try await Task.detached { try gh.activate(token: secret) }.value
@@ -281,6 +286,8 @@ final class AppState: ObservableObject {
         if v.defaultTokenId == id { v.defaultTokenId = nil }
         if heldDefault?.id == id { heldDefault = nil }
         persist(v)
+        // A deleted token can't be named, timed or restored: don't leave it live.
+        if activation.activeTokenId == id { deactivate() }
     }
 
     func resetVault() {

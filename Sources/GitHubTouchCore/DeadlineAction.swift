@@ -15,8 +15,9 @@ public enum DeadlineAction: Equatable, Sendable {
 public func deadlineAction(defaultTokenId: UUID?, heldDefaultId: UUID?,
                            defaultExpired: Bool) -> DeadlineAction {
     guard let defaultTokenId else { return .logout(.noDefault) }
+    // An expired default is never unsealed, so check expiry before holding.
+    guard !defaultExpired else { return .logout(.defaultExpired) }
     guard let heldDefaultId else { return .logout(.defaultNotHeld) }
     guard heldDefaultId == defaultTokenId else { return .logout(.defaultChanged) }
-    guard !defaultExpired else { return .logout(.defaultExpired) }
     return .switchToDefault(defaultTokenId)
 }

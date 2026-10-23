@@ -33,4 +33,10 @@ final class DeadlineActionTests: XCTestCase {
         XCTAssertEqual(deadlineAction(defaultTokenId: defaultId, heldDefaultId: defaultId, defaultExpired: false),
                        .switchToDefault(defaultId))
     }
+
+    func testDeadlineActionExpiredWinsOverNotHeld() {
+        // an expired default is never unsealed, so it is never held either
+        XCTAssertEqual(deadlineAction(defaultTokenId: defaultId, heldDefaultId: nil, defaultExpired: true),
+                       .logout(.defaultExpired))
+    }
 }
