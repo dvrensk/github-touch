@@ -19,7 +19,7 @@ struct GitHubTouchApp: App {
         Window("Manage Tokens", id: "manage-tokens") {
             ManageView().environmentObject(state)
         }
-        .windowResizability(.contentSize)
+        .windowResizability(.contentMinSize)
         Window("Import Token", id: "import-token") {
             ImportTokenView().environmentObject(state)
         }

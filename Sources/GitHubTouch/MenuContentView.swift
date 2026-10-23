@@ -96,7 +96,7 @@ struct MenuContentView: View {
         if state.tokens.isEmpty {
             Text("No tokens in the vault yet")
         }
-        ForEach(state.tokens) { token in
+        ForEach(state.tokens.sortedByTag()) { token in
             Button {
                 state.activate(token)
             } label: {
@@ -106,6 +106,7 @@ struct MenuContentView: View {
                     : "\(token.label)  (\(token.menuSummary))\(suffix)"
                 if let tag = token.tag {
                     Label { Text(text) } icon: { Image(nsImage: tag.dot) }
+                        .labelStyle(.titleAndIcon)
                 } else {
                     Text(text)
                 }

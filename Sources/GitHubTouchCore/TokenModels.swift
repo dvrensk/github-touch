@@ -81,3 +81,20 @@ public struct VaultFile: Codable, Sendable {
         self.defaultTokenId = defaultTokenId
     }
 }
+
+extension Array where Element == TokenEntry {
+    /// Menu order: untagged, then green, orange, red; vault order within each.
+    public func sortedByTag() -> [TokenEntry] {
+        func rank(_ tag: TokenTag?) -> Int {
+            switch tag {
+            case nil: return 0
+            case .green: return 1
+            case .orange: return 2
+            case .red: return 3
+            }
+        }
+        return enumerated()
+            .sorted { (rank($0.element.tag), $0.offset) < (rank($1.element.tag), $1.offset) }
+            .map(\.element)
+    }
+}

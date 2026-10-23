@@ -3,17 +3,13 @@ import GitHubTouchCore
 import SwiftUI
 
 extension TokenTag {
-    var color: Color {
-        switch self {
-        case .green: return .green
-        case .orange: return .orange
-        case .red: return .red
-        }
-    }
+    var color: Color { Color(nsColor: nsColor) }
 
+    /// A muted green (systemGreen reads as toy-like next to the others);
+    /// orange and red stay the system colours.
     var nsColor: NSColor {
         switch self {
-        case .green: return .systemGreen
+        case .green: return NSColor(srgbRed: 0.24, green: 0.62, blue: 0.30, alpha: 1)
         case .orange: return .systemOrange
         case .red: return .systemRed
         }
@@ -21,11 +17,10 @@ extension TokenTag {
 
     var displayName: String { rawValue.capitalized }
 
-    /// A small filled circle drawn in the tag colour. Non-template, because
-    /// menus render template images and SF Symbols monochrome.
+    /// A filled circle in the tag colour for menu rows. Non-template, so the
+    /// menu draws it in colour rather than as a monochrome glyph.
     var dot: NSImage {
-        let size = NSSize(width: 10, height: 10)
-        let image = NSImage(size: size, flipped: false) { rect in
+        let image = NSImage(size: NSSize(width: 12, height: 12), flipped: false) { rect in
             self.nsColor.setFill()
             NSBezierPath(ovalIn: rect.insetBy(dx: 1, dy: 1)).fill()
             return true

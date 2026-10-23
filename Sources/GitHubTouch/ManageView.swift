@@ -8,7 +8,14 @@ struct ManageView: View {
         List(state.tokens) { token in
             TokenRowEditor(token: token)
         }
-        .frame(width: 520, height: max(200, CGFloat(state.tokens.count) * 180))
+        // Opens tall enough for every token but never taller than the screen;
+        // resizable down to a scrolling list for smaller displays.
+        .frame(minWidth: 520, idealWidth: 520, minHeight: 200,
+               idealHeight: min(max(200, CGFloat(state.tokens.count) * 180), Self.maxIdealHeight))
+    }
+
+    private static var maxIdealHeight: CGFloat {
+        (NSScreen.main?.visibleFrame.height ?? 800) - 80
     }
 }
 
@@ -55,6 +62,7 @@ private struct TokenRowEditor: View {
                     Text("None").tag(TokenTag?.none)
                     ForEach(TokenTag.allCases, id: \.self) { tag in
                         Label { Text(tag.displayName) } icon: { Image(nsImage: tag.dot) }
+                            .labelStyle(.titleAndIcon)
                             .tag(TokenTag?.some(tag))
                     }
                 }
