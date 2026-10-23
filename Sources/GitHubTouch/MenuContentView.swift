@@ -95,23 +95,27 @@ struct MenuContentView: View {
     @ViewBuilder private var tokenRows: some View {
         if state.tokens.isEmpty {
             Text("No tokens in the vault yet")
-        }
-        ForEach(state.tokens.sortedByTag()) { token in
-            Button {
-                state.activate(token)
-            } label: {
-                let suffix = token.id == state.defaultTokenId ? " — default" : ""
-                let text = token.isExpired()
-                    ? "\(token.label) — expired\(suffix)"
-                    : "\(token.label)  (\(token.menuSummary))\(suffix)"
-                if let tag = token.tag {
-                    Label { Text(text) } icon: { Image(nsImage: tag.dot) }
-                        .labelStyle(.titleAndIcon)
-                } else {
-                    Text(text)
+        } else {
+            // A section header keeps the Duration visible where the token is picked.
+            Section(state.duration.activationPhrase) {
+                ForEach(state.tokens.sortedByTag()) { token in
+                    Button {
+                        state.activate(token)
+                    } label: {
+                        let suffix = token.id == state.defaultTokenId ? " — default" : ""
+                        let text = token.isExpired()
+                            ? "\(token.label) — expired\(suffix)"
+                            : "\(token.label)  (\(token.menuSummary))\(suffix)"
+                        if let tag = token.tag {
+                            Label { Text(text) } icon: { Image(nsImage: tag.dot) }
+                                .labelStyle(.titleAndIcon)
+                        } else {
+                            Text(text)
+                        }
+                    }
+                    .disabled(token.isExpired() || token.id == state.activation.activeTokenId)
                 }
             }
-            .disabled(token.isExpired() || token.id == state.activation.activeTokenId)
         }
     }
 

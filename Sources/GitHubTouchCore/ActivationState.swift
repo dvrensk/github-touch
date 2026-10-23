@@ -13,6 +13,12 @@ public enum ActivationDuration: String, CaseIterable, Codable, Sendable {
         }
     }
 
+    /// Section header over the token list, so the duration is visible
+    /// where the token is picked.
+    public var activationPhrase: String {
+        self == .untilMidnight ? "Activate until midnight" : "Activate for \(menuTitle)"
+    }
+
     public var minutes: Int? {
         switch self {
         case .fifteenMinutes: return 15

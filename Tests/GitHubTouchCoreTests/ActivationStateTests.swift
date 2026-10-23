@@ -182,3 +182,11 @@ final class ActivationStateTests: XCTestCase {
         XCTAssertFalse(ActivationStateStore(defaults: defaults).load().untilMidnight)
     }
 }
+
+final class ActivationDurationPhraseTests: XCTestCase {
+    func testActivationPhrase() {
+        XCTAssertEqual(ActivationDuration.allCases.map(\.activationPhrase),
+                       ["Activate for 15 min", "Activate for 30 min", "Activate for 1 hour",
+                        "Activate until midnight"])
+    }
+}
