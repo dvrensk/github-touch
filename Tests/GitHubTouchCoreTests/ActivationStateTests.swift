@@ -44,4 +44,110 @@ final class ActivationStateTests: XCTestCase {
         XCTAssertEqual(store.load(), ActivationState())
         defaults.removePersistentDomain(forName: "github-touch-tests")
     }
+
+    // MARK: - Durations, extend, reconcile, countdown
+
+    private var madrid: Calendar {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "Europe/Madrid")!
+        return calendar
+    }
+
+    private func date(_ iso: String) -> Date {
+        ISO8601DateFormatter().date(from: iso)!
+    }
+
+    private var t0: Date { date("2026-07-07T15:30:00+02:00") }
+
+    func testDurationClearAt() {
+        XCTAssertEqual(ActivationDuration.fifteenMinutes.clearAt(from: t0, calendar: madrid),
+                       t0.addingTimeInterval(900))
+        XCTAssertEqual(ActivationDuration.oneHour.clearAt(from: t0, calendar: madrid),
+                       t0.addingTimeInterval(3600))
+        XCTAssertEqual(ActivationDuration.untilMidnight.clearAt(from: t0, calendar: madrid),
+                       date("2026-07-08T00:00:00+02:00"))
+    }
+
+    func testDurationMenuTitlesInOrder() {
+        XCTAssertEqual(ActivationDuration.allCases.map(\.menuTitle),
+                       ["15 min", "30 min", "1 hour", "Until midnight"])
+    }
+
+    func testExtendedAddsFromClearAtNotNow() {
+        let state = ActivationState(activeTokenId: UUID(), clearAt: t0.addingTimeInterval(600))
+        let twice = state.extended(by: .fifteenMinutes, calendar: madrid)
+            .extended(by: .fifteenMinutes, calendar: madrid)
+        XCTAssertEqual(twice.clearAt, t0.addingTimeInterval(600 + 1800))
+        XCTAssertFalse(twice.untilMidnight)
+    }
+
+    func testExtendedUntilMidnightSetsFlag() {
+        let state = ActivationState(activeTokenId: UUID(), clearAt: t0.addingTimeInterval(600))
+        let extended = state.extended(by: .untilMidnight, calendar: madrid)
+        XCTAssertEqual(extended.clearAt, date("2026-07-08T00:00:00+02:00"))
+        XCTAssertTrue(extended.untilMidnight)
+    }
+
+    func testExtendedNoOpWithoutClearAt() {
+        let state = ActivationState(activeTokenId: UUID())
+        XCTAssertEqual(state.extended(by: .thirtyMinutes, calendar: madrid), state)
+    }
+
+    func testReconciledMakesNewDefaultTimerless() {
+        let id = UUID()
+        let state = ActivationState(activeTokenId: id, clearAt: t0.addingTimeInterval(600),
+                                    untilMidnight: true)
+        let reconciled = state.reconciled(withDefault: id, now: t0, calendar: madrid)
+        XCTAssertNil(reconciled.clearAt)
+        XCTAssertFalse(reconciled.untilMidnight)
+        XCTAssertEqual(reconciled.activeTokenId, id)
+    }
+
+    func testReconciledGivesExDefaultAMidnightTimer() {
+        let id = UUID()
+        let state = ActivationState(activeTokenId: id)
+        for newDefault in [nil, UUID()] {
+            let reconciled = state.reconciled(withDefault: newDefault, now: t0, calendar: madrid)
+            XCTAssertEqual(reconciled.clearAt, date("2026-07-08T00:00:00+02:00"))
+            XCTAssertTrue(reconciled.untilMidnight)
+        }
+    }
+
+    func testReconciledLeavesTimedNonDefaultAlone() {
+        let state = ActivationState(activeTokenId: UUID(), clearAt: t0.addingTimeInterval(600))
+        XCTAssertEqual(state.reconciled(withDefault: UUID(), now: t0, calendar: madrid), state)
+        XCTAssertEqual(ActivationState().reconciled(withDefault: UUID(), now: t0, calendar: madrid),
+                       ActivationState())
+    }
+
+    func testCountdownText() {
+        let id = UUID()
+        func text(_ offset: TimeInterval, untilMidnight: Bool = false) -> String? {
+            ActivationState(activeTokenId: id, clearAt: t0.addingTimeInterval(offset),
+                            untilMidnight: untilMidnight).countdownText(now: t0)
+        }
+        XCTAssertEqual(text(23 * 60 + 10), "24m")
+        XCTAssertEqual(text(30), "<1m")
+        XCTAssertNil(text(-1))
+        XCTAssertNil(text(600, untilMidnight: true))
+        XCTAssertNil(ActivationState(activeTokenId: id).countdownText(now: t0))
+    }
+
+    func testStoreRoundTripsUntilMidnightAndDuration() throws {
+        let suite = "github-touch-tests-duration"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defaults.removePersistentDomain(forName: suite)
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let store = ActivationStateStore(defaults: defaults)
+
+        let state = ActivationState(activeTokenId: UUID(),
+                                    clearAt: Date(timeIntervalSince1970: 1_790_000_000),
+                                    untilMidnight: true)
+        store.save(state)
+        XCTAssertEqual(store.load(), state)
+
+        XCTAssertEqual(store.loadDuration(), .untilMidnight)
+        store.saveDuration(.thirtyMinutes)
+        XCTAssertEqual(store.loadDuration(), .thirtyMinutes)
+    }
 }
