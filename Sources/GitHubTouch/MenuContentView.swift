@@ -28,9 +28,22 @@ struct MenuContentView: View {
             Divider()
             tokenRows
             Divider()
+            if let extendTitle {
+                Button(extendTitle) { state.extend() }
+            }
+            if state.canSwitchToDefault {
+                Button("Switch to Default Now") { state.switchToDefaultNow() }
+            }
             if state.activation.isActive {
                 Button("Deactivate Now") { state.deactivate() }
             }
+            Picker("Duration", selection: $state.duration) {
+                ForEach(ActivationDuration.allCases, id: \.self) { duration in
+                    Text(duration.menuTitle).tag(duration)
+                }
+            }
+            .pickerStyle(.menu)
+            Divider()
             Button("Add Token…") { open(windowId: "add-token") }
             if !state.tokens.isEmpty {
                 Button("Manage Tokens…") { open(windowId: "manage-tokens") }
@@ -52,10 +65,31 @@ struct MenuContentView: View {
 
     @ViewBuilder private var header: some View {
         if let active = state.activeToken {
-            Text("Active: \(active.label) — until midnight")
+            let activation = state.activation
+            if let clearAt = activation.clearAt {
+                if activation.untilMidnight {
+                    Text("Active: \(active.label) — until midnight")
+                } else {
+                    let minutes = max(0, Int((clearAt.timeIntervalSince(state.now) / 60).rounded(.up)))
+                    Text("Active: \(active.label) — \(minutes) min left (until \(clearAt.formatted(date: .omitted, time: .shortened)))")
+                }
+            } else {
+                Text("Active: \(active.label) (default)")
+            }
         } else {
             Text("No token active")
         }
+    }
+
+    /// "Add 30 min" / "Keep Until Midnight" while a timed token runs; nil when
+    /// extending would change nothing or no timer is running.
+    private var extendTitle: String? {
+        let activation = state.activation
+        guard activation.isActive, activation.clearAt != nil else { return nil }
+        if state.duration == .untilMidnight {
+            return activation.untilMidnight ? nil : "Keep Until Midnight"
+        }
+        return "Add \(state.duration.menuTitle)"
     }
 
     @ViewBuilder private var tokenRows: some View {
@@ -66,10 +100,14 @@ struct MenuContentView: View {
             Button {
                 state.activate(token)
             } label: {
-                if token.isExpired() {
-                    Text("\(token.label) — expired")
+                let suffix = token.id == state.defaultTokenId ? " — default" : ""
+                let text = token.isExpired()
+                    ? "\(token.label) — expired\(suffix)"
+                    : "\(token.label)  (\(token.menuSummary))\(suffix)"
+                if let tag = token.tag {
+                    Label { Text(text) } icon: { Image(nsImage: tag.dot) }
                 } else {
-                    Text("\(token.label)  (\(token.menuSummary))")
+                    Text(text)
                 }
             }
             .disabled(token.isExpired() || token.id == state.activation.activeTokenId)
