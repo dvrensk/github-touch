@@ -41,6 +41,10 @@ as long as you chose.
   when the timer runs out if the app is running, on wake if the Mac
   slept through it, and at launch if the app wasn't running. "Deactivate
   Now" logs out on demand; "Switch to Default Now" goes back early.
+- **Copying a token out.** Manage Tokens → Copy Token unseals it
+  (Touch ID) onto the clipboard, marked concealed so clipboard managers
+  skip it, and wipes it after a minute unless you've copied something
+  else since. Nothing is activated in `gh`.
 - Metadata (label, permissions, expiry, notes, tag, default) is deliberately stored
   in plaintext so the menu can show what each token can do without
   prompting.
@@ -105,6 +109,9 @@ off this machine.
     logged out, not left live.
 16. Duration submenu shows the four choices with one checkmark, and the
     choice survives a relaunch.
+17. Copy Token in Manage → one Touch ID prompt, the token pastes, and
+    after a minute the clipboard is empty. Copy something else within
+    the minute → that survives. Cancel the prompt → no notification.
 
 ## License
 

@@ -84,6 +84,8 @@ private struct TokenRowEditor: View {
                     } message: {
                         Text("The token itself keeps working on GitHub until you revoke it there.")
                     }
+                Button("Copy Token") { state.copyToClipboard(token) }
+                    .help("Touch ID, then the token is on the clipboard for 1 minute.")
                 Spacer()
                 Button("Save Changes") {
                     let permissions = permissionsText.split(separator: ";")

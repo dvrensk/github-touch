@@ -236,6 +236,42 @@ final class AppState: ObservableObject {
         clearTimer = timer
     }
 
+    // MARK: - Export
+
+    /// Clipboard managers that honour nspasteboard.org skip items carrying this type.
+    private static let concealedType = NSPasteboard.PasteboardType("org.nspasteboard.ConcealedType")
+    private static let clipboardLifetime: Duration = .seconds(60)
+
+    /// Unseals a token (Touch ID) onto the clipboard, then wipes it after a
+    /// minute unless something else has been copied since.
+    func copyToClipboard(_ entry: TokenEntry) {
+        guard let vault else { return }
+        Task {
+            do {
+                let token = try await Task.detached {
+                    let key = try SecureEnclaveVaultKey.load(
+                        blob: vault.seKey,
+                        reason: "copy the GitHub token “\(entry.label)” to the clipboard")
+                    return try VaultCrypto.unseal(
+                        ciphertext: entry.ciphertext, ephemeralPub: entry.ephemeralPub, using: key)
+                }.value
+                let pasteboard = NSPasteboard.general
+                pasteboard.declareTypes([.string, Self.concealedType], owner: nil)
+                pasteboard.setString(token, forType: .string)
+                pasteboard.setData(Data(), forType: Self.concealedType)
+                let changeCount = pasteboard.changeCount
+                Notifier.post("“\(entry.label)” copied. The clipboard clears in 1 minute.")
+                try? await Task.sleep(for: Self.clipboardLifetime)
+                if pasteboard.changeCount == changeCount { pasteboard.clearContents() }
+            } catch let error as LAError where error.code == .userCancel || error.code == .appCancel {
+                // user changed their mind — stay silent
+            } catch {
+                lastError = "\(error)"
+                Notifier.post("Copy failed: \(error.localizedDescription)")
+            }
+        }
+    }
+
     // MARK: - Vault mutations
 
     func addToken(label: String, kind: TokenKind, permissions: [String], summary: String?,
