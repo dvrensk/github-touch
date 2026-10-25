@@ -243,18 +243,24 @@ final class AppState: ObservableObject {
     private static let clipboardLifetime: Duration = .seconds(60)
 
     /// Unseals a token (Touch ID) onto the clipboard, then wipes it after a
-    /// minute unless something else has been copied since.
-    func copyToClipboard(_ entry: TokenEntry) {
+    /// minute unless something else has been copied since. A context that has
+    /// already passed Touch ID unlocks the key without another prompt.
+    func copyToClipboard(_ entry: TokenEntry, context: LAContext = LAContext()) {
         guard let vault else { return }
+        let window = NSApp.keyWindow
+        nonisolated(unsafe) let context = context
         Task {
             do {
-                let token = try await Task.detached {
+                let unsealed = await Task.detached {
                     let key = try SecureEnclaveVaultKey.load(
                         blob: vault.seKey,
-                        reason: "copy the GitHub token “\(entry.label)” to the clipboard")
+                        reason: "copy the GitHub token “\(entry.label)” to the clipboard",
+                        context: context)
                     return try VaultCrypto.unseal(
                         ciphertext: entry.ciphertext, ephemeralPub: entry.ephemeralPub, using: key)
-                }.value
+                }.result
+                Self.refocus(window)
+                let token = try unsealed.get()
                 let pasteboard = NSPasteboard.general
                 pasteboard.declareTypes([.string, Self.concealedType], owner: nil)
                 pasteboard.setString(token, forType: .string)
@@ -270,6 +276,15 @@ final class AppState: ObservableObject {
                 Notifier.post("Copy failed: \(error.localizedDescription)")
             }
         }
+    }
+
+    /// The Touch ID prompt is another process's window. When it closes, macOS
+    /// hands focus to the app that was active before ours (an LSUIElement app
+    /// isn't put back), so the window the user was working in ends up behind it.
+    private static func refocus(_ window: NSWindow?) {
+        guard let window, window.isVisible else { return }
+        NSApp.activate(ignoringOtherApps: true)
+        window.makeKeyAndOrderFront(nil)
     }
 
     // MARK: - Vault mutations
